@@ -18,16 +18,20 @@ load_dotenv()
 app = FastAPI()
 
 # ✅ Correct CORS configuration
+origins = [
+    "http://localhost:3000",             # Local React
+    "http://localhost:5173",             # Local Vite (optional)
+    "https://ar-learn-ten.vercel.app",   # Frontend (Vercel)
+    "https://ar-learn-fzzr.onrender.com" # Backend (Render)
+]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:3000",  # Local React
-        "https://ar-learn-ten.vercel.app",  # Your frontend on Vercel
-        "https://ar-learn-fzzr.onrender.com"  # Your backend on Render
-    ],
+    allow_origins=origins,       # Allow only these origins
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["*"],         # Allow all HTTP methods (GET, POST, etc.)
+    allow_headers=["*"],         # Allow all headers
+    expose_headers=["*"],        # Expose all headers (optional but safe)
 )
 
 # ✅ MongoDB setup
@@ -40,6 +44,7 @@ pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 # ✅ Gemini AI setup
 genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
 
+# ------------------ Models ------------------
 class User(BaseModel):
     username: str
     email: str
@@ -49,6 +54,10 @@ class Login(BaseModel):
     email: str
     password: str
 
+class Question(BaseModel):
+    question: str
+
+# ------------------ Routes ------------------
 @app.post("/api/auth/register")
 async def register_user(user: User):
     existing_user = await db.users.find_one({"email": user.email})
@@ -74,10 +83,6 @@ async def login_user(login: Login):
 
     return {"message": "Login successful", "username": user["username"], "email": user["email"]}
 
-# ✅ AI Question endpoint
-class Question(BaseModel):
-    question: str
-
 @app.post("/api/ask")
 async def ask_ai(question: Question):
     try:
@@ -89,5 +94,4 @@ async def ask_ai(question: Question):
 
 @app.get("/")
 def home():
-    return {"message": "AR Learning Backend is running!"}
-
+    return {"message": "🚀 AR Learning Backend is running and CORS is working!"}
