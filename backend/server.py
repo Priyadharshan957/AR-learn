@@ -27,7 +27,7 @@ app = FastAPI()
 # ✅ Allow frontend (React) access to backend
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://127.0.0.1:8000","*"],
+    allow_origins=["http://localhost:3000", "http://127.0.0.1:8000","*","https://ar-learn-fzzr.onrender.com","https://ar-learn-ten.vercel.app/"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
