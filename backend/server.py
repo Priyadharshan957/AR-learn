@@ -4,10 +4,9 @@ from pydantic import BaseModel
 import motor.motor_asyncio
 from passlib.context import CryptContext
 from datetime import datetime
-from fastapi.responses import JSONResponse
 from dotenv import load_dotenv
-import google.generativeai as genai
 import os
+import google.generativeai as genai
 
 # ✅ Load environment variables
 load_dotenv()
@@ -15,24 +14,24 @@ load_dotenv()
 # ✅ Initialize FastAPI app
 app = FastAPI()
 
-# ✅ Correct CORS configuration
-origins = [
-    "http://localhost:3000",                 # Local development
-    "https://ar-learn-ten.vercel.app",       # Frontend (Vercel)
-    "https://ar-learn-fzzr.onrender.com"     # Backend (Render)
+# ✅ CORS configuration
+allowed_origins = [
+    "http://localhost:3000",
+    "https://ar-learn-ten.vercel.app",
+    "https://ar-learn-fzzr.onrender.com"
 ]
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,
+    allow_origins=allowed_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# ✅ MongoDB setup
-client = motor.motor_asyncio.AsyncIOMotorClient(os.getenv("MONGODB_URL"))
-db = client.get_database("arlearn")
+# ✅ MongoDB setup (fixed variable name)
+client = motor.motor_asyncio.AsyncIOMotorClient(os.getenv("MONGO_URL"))
+db = client.get_database(os.getenv("DB_NAME", "ar_learning_db"))
 
 # ✅ Password hashing
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -40,7 +39,7 @@ pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 # ✅ Gemini AI setup
 genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
 
-# ✅ Models
+# ✅ User models
 class User(BaseModel):
     username: str
     email: str
@@ -49,15 +48,6 @@ class User(BaseModel):
 class Login(BaseModel):
     email: str
     password: str
-
-class Question(BaseModel):
-    question: str
-
-# ✅ Routes
-@app.get("/")
-async def root():
-    return {"message": "✅ AR Learning Backend is running!"}
-
 
 @app.post("/api/auth/register")
 async def register_user(user: User):
@@ -73,7 +63,6 @@ async def register_user(user: User):
     result = await db.users.insert_one(user_dict)
     return {"message": "User registered successfully", "id": str(result.inserted_id)}
 
-
 @app.post("/api/auth/login")
 async def login_user(login: Login):
     user = await db.users.find_one({"email": login.email})
@@ -85,6 +74,9 @@ async def login_user(login: Login):
 
     return {"message": "Login successful", "username": user["username"], "email": user["email"]}
 
+# ✅ AI Question endpoint
+class Question(BaseModel):
+    question: str
 
 @app.post("/api/ask")
 async def ask_ai(question: Question):
@@ -94,3 +86,7 @@ async def ask_ai(question: Question):
         return {"response": response.text}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/")
+def home():
+    return {"message": "✅ AR Learning Backend is running!"}
