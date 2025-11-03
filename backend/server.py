@@ -3,13 +3,11 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import motor.motor_asyncio
 from passlib.context import CryptContext
-from bson import ObjectId
 from datetime import datetime
 from fastapi.responses import JSONResponse
-from fastapi.encoders import jsonable_encoder
-import os
 from dotenv import load_dotenv
 import google.generativeai as genai
+import os
 
 # ✅ Load environment variables
 load_dotenv()
@@ -19,19 +17,17 @@ app = FastAPI()
 
 # ✅ Correct CORS configuration
 origins = [
-    "http://localhost:3000",             # Local React
-    "http://localhost:5173",             # Local Vite (optional)
-    "https://ar-learn-ten.vercel.app",   # Frontend (Vercel)
-    "https://ar-learn-fzzr.onrender.com" # Backend (Render)
+    "http://localhost:3000",                 # Local development
+    "https://ar-learn-ten.vercel.app",       # Frontend (Vercel)
+    "https://ar-learn-fzzr.onrender.com"     # Backend (Render)
 ]
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,       # Allow only these origins
+    allow_origins=origins,
     allow_credentials=True,
-    allow_methods=["*"],         # Allow all HTTP methods (GET, POST, etc.)
-    allow_headers=["*"],         # Allow all headers
-    expose_headers=["*"],        # Expose all headers (optional but safe)
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 # ✅ MongoDB setup
@@ -44,7 +40,7 @@ pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 # ✅ Gemini AI setup
 genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
 
-# ------------------ Models ------------------
+# ✅ Models
 class User(BaseModel):
     username: str
     email: str
@@ -57,7 +53,12 @@ class Login(BaseModel):
 class Question(BaseModel):
     question: str
 
-# ------------------ Routes ------------------
+# ✅ Routes
+@app.get("/")
+async def root():
+    return {"message": "✅ AR Learning Backend is running!"}
+
+
 @app.post("/api/auth/register")
 async def register_user(user: User):
     existing_user = await db.users.find_one({"email": user.email})
@@ -72,6 +73,7 @@ async def register_user(user: User):
     result = await db.users.insert_one(user_dict)
     return {"message": "User registered successfully", "id": str(result.inserted_id)}
 
+
 @app.post("/api/auth/login")
 async def login_user(login: Login):
     user = await db.users.find_one({"email": login.email})
@@ -83,6 +85,7 @@ async def login_user(login: Login):
 
     return {"message": "Login successful", "username": user["username"], "email": user["email"]}
 
+
 @app.post("/api/ask")
 async def ask_ai(question: Question):
     try:
@@ -91,7 +94,3 @@ async def ask_ai(question: Question):
         return {"response": response.text}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-
-@app.get("/")
-def home():
-    return {"message": "🚀 AR Learning Backend is running and CORS is working!"}
