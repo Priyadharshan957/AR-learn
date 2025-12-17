@@ -8,6 +8,9 @@ import { toast } from 'sonner';
 import { ArrowLeft, Maximize2, RotateCw, BookOpen, Info } from 'lucide-react';
 import '@google/model-viewer';
 
+/* 🔊 AUDIO – ADDED */
+import { Volume2, VolumeX } from 'lucide-react';
+
 export default function ARModelViewer() {
   const { modelId } = useParams();
   const navigate = useNavigate();
@@ -15,9 +18,19 @@ export default function ARModelViewer() {
   const [model, setModel] = useState(null);
   const [loading, setLoading] = useState(true);
 
+  /* 🔊 AUDIO – ADDED */
+  const [isSpeaking, setIsSpeaking] = useState(false);
+
   useEffect(() => {
     fetchModel();
   }, [modelId]);
+
+  /* 🔊 AUDIO – ADDED */
+  useEffect(() => {
+    return () => {
+      window.speechSynthesis.cancel();
+    };
+  }, []);
 
   const fetchModel = async () => {
     try {
@@ -31,6 +44,28 @@ export default function ARModelViewer() {
     } finally {
       setLoading(false);
     }
+  };
+
+  /* 🔊 AUDIO – ADDED */
+  const toggleSpeech = () => {
+    if (!model?.description) return;
+
+    if (isSpeaking) {
+      window.speechSynthesis.cancel();
+      setIsSpeaking(false);
+      return;
+    }
+
+    const utterance = new SpeechSynthesisUtterance(model.description);
+    utterance.lang = 'en-US';
+    utterance.rate = 1;
+    utterance.pitch = 1;
+
+    utterance.onend = () => setIsSpeaking(false);
+    utterance.onerror = () => setIsSpeaking(false);
+
+    window.speechSynthesis.speak(utterance);
+    setIsSpeaking(true);
   };
 
   if (loading) {
@@ -85,6 +120,26 @@ export default function ARModelViewer() {
                     }}
                     loading="eager"
                   >
+
+                    {/* 🔊 AUDIO BUTTON – ADDED */}
+                    <div className="absolute top-4 right-4">
+                      <Button
+                        onClick={toggleSpeech}
+                        className="bg-white text-indigo-600 hover:bg-gray-100 shadow-lg"
+                        size="sm"
+                      >
+                        {isSpeaking ? (
+                          <>
+                            <VolumeX className="w-4 h-4 mr-2" /> Stop
+                          </>
+                        ) : (
+                          <>
+                            <Volume2 className="w-4 h-4 mr-2" /> Listen
+                          </>
+                        )}
+                      </Button>
+                    </div>
+
                     <div className="absolute bottom-4 left-4 right-4 flex gap-2 justify-center" slot="ar-button">
                       <Button className="btn-hover bg-white text-indigo-600 hover:bg-gray-100" data-testid="view-ar-btn">
                         <Maximize2 className="w-4 h-4 mr-2" />
